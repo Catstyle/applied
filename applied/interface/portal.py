@@ -59,7 +59,6 @@ class PortalSession(BaseInterface):
     @property
     @cache('auth_service_key', default='', ttl=3600000)
     def auth_service_key(self):
-        print(11111)
         return self.get_service_key()
 
     @cache(key='{self.username}_list_teams', default=[])

@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import List
 
+from .. import error
+
 from .base import BaseModel
 from .bundle import BundleId
 from .certificate import Certificate
@@ -61,22 +63,43 @@ class Profile(BaseModel):
 
     @classmethod
     def fetch_csrf_data(cls):
-        session = cls.client.portal_session
-        resp = session.post(
-            f'{session.DEV_QH65B2}/account/ios/profile/'
+        portal = cls.client.portal_session
+        resp = portal.post(
+            f'{portal.DEV_QH65B2}/account/ios/profile/'
             'listProvisioningProfiles.action',
             data={
-                'teamId': session.team_id,
+                'teamId': portal.team_id,
                 'pageNumber': 1,
                 'pageSize': 1,
                 'sort': 'name=asc',
+            },
+            headers={
+                'X-HTTP-Method-Override': 'GET',
             }
         )
+        data = resp.json()
+        if 'expired' in data.get('resultString', ''):
+            if not portal.login():
+                raise error.InvalidAuthCredential()
+            resp = portal.post(
+                f'{portal.DEV_QH65B2}/account/ios/profile/'
+                'listProvisioningProfiles.action',
+                data={
+                    'teamId': portal.team_id,
+                    'pageNumber': 1,
+                    'pageSize': 1,
+                    'sort': 'name=asc',
+                },
+                headers={
+                    'X-HTTP-Method-Override': 'GET',
+                }
+            )
+        if not ('csrf' in resp.headers and 'csrf_ts' in resp.headers):
+            raise error.NoCsrfData(cls)
         csrf_data = {
-            'csrf': resp.headers.get('csrf', ''),
-            'csrf_ts': resp.headers.get('csrf_ts', ''),
+            'csrf': resp.headers['csrf'], 'csrf_ts': resp.headers['csrf_ts'],
         }
-        session.csrf_data[cls] = csrf_data
+        portal.csrf_data[cls] = csrf_data
         return csrf_data
 
     @classmethod
