@@ -65,12 +65,12 @@ class Capability(BaseModel):
 
     @classmethod
     def build_create_data(cls, capability_type: str, bundle_id: str,
-                          settings: List[CapabilitySetting]) -> dict:
+                          settings: List[CapabilitySetting] = None) -> dict:
         return {
             'type': cls.TYPE,
             'attributes': {
                 'capabilityType': capability_type,
-                'settings': settings,
+                'settings': settings or [],
             },
             'relationships': {
                 'bundleId': {'data': {'id': bundle_id, 'type': 'bundleIds'}},
@@ -78,12 +78,12 @@ class Capability(BaseModel):
         }
 
     def build_update_data(self, capability_type: str,
-                          settings: List[CapabilitySetting]) -> dict:
+                          settings: List[CapabilitySetting] = None) -> dict:
         return {
             'type': self.TYPE,
             'id': self.TYPE,
             'attributes': {
                 'capabilityType': capability_type,
-                'settings': settings,
+                'settings': settings or [],
             },
         }
