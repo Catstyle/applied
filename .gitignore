@@ -1,44 +1,61 @@
+# Created by .ignore support plugin
+
+### Python template
+# Byte-compiled / optimized / DLL files
+__pycache__/
 *.py[cod]
+*$py.class
 
-# C extensions
-*.so
-
-# Packages
-*.egg
-*.egg-info
-dist
-build
-eggs
-parts
-bin
-var
-sdist
-develop-eggs
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+target/
+var/
+*.egg-info/
 .installed.cfg
-lib
-lib64
-__pycache__
+*.egg
 
 # Installer logs
 pip-log.txt
+pip-delete-this-directory.txt
 
 # Unit test / coverage reports
+coverage_html/
+.tox/
 .coverage
-coverage_html
-.tox
+.coverage.*
+.cache
 nosetests.xml
+coverage.xml
+*,cover
 
 # Translations
 *.mo
+*.pot
 
-# Mr Developer
-.mr.developer.cfg
-.project
-.pydevproject
-.idea
+# logs
+*.sqlite
+*.log
+logs
+logs/
 
-# vim
+# Sphinx documentation
+docs/_build/
+
+# virtual environment
+.python-version
+venv
+env/
+
+# IDE
+.idea/*
 *.swp
-
-# pb
-*_pb2.py
