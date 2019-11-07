@@ -73,9 +73,7 @@ class Profile(BaseModel):
                 'pageSize': 1,
                 'sort': 'name=asc',
             },
-            headers={
-                'X-HTTP-Method-Override': 'GET',
-            }
+            headers={'X-HTTP-Method-Override': 'GET'},
         )
         data = resp.json()
         if 'expired' in data.get('resultString', ''):
@@ -90,27 +88,24 @@ class Profile(BaseModel):
                     'pageSize': 1,
                     'sort': 'name=asc',
                 },
-                headers={
-                    'X-HTTP-Method-Override': 'GET',
-                }
+                headers={'X-HTTP-Method-Override': 'GET'},
             )
         if not ('csrf' in resp.headers and 'csrf_ts' in resp.headers):
             raise error.NoCsrfData(cls)
         csrf_data = {
-            'csrf': resp.headers['csrf'], 'csrf_ts': resp.headers['csrf_ts'],
+            'csrf': resp.headers['csrf'],
+            'csrf_ts': resp.headers['csrf_ts'],
         }
         portal.csrf_data[cls] = csrf_data
         return csrf_data
 
     @classmethod
-    def build_create_data(cls, name, profile_type, bundle_id, certificates,
-                          devices):
+    def build_create_data(
+        cls, name, profile_type, bundle_id, certificates, devices
+    ):
         return {
             'type': cls.TYPE,
-            'attributes': {
-                'name': name,
-                'profileType': profile_type,
-            },
+            'attributes': {'name': name, 'profileType': profile_type},
             'relationships': {
                 'bundleId': {'data': {'id': bundle_id, 'type': 'bundleIds'}},
                 'certificates': {
@@ -123,8 +118,8 @@ class Profile(BaseModel):
                     'data': [
                         {'id': did, 'type': 'devices'} for did in devices
                     ],
-                }
-            }
+                },
+            },
         }
 
     def build_update_data(self, name, app_id, certificates, devices):
@@ -142,8 +137,13 @@ class Profile(BaseModel):
             'deviceIds': ','.join(devices),
         }
 
-    def update(self, name: str = None, app_id: str = None,
-               certificates: List[str] = None, devices: List[str] = None):
+    def update(
+        self,
+        name: str = None,
+        app_id: str = None,
+        certificates: List[str] = None,
+        devices: List[str] = None,
+    ):
         ''' update a specified profile
 
         since app store connect api donot permit update
@@ -152,12 +152,39 @@ class Profile(BaseModel):
         '''
         csrf_data = self.get_csrf_data()
         data = self.build_update_data(name, app_id, certificates, devices)
-        self.client.portal_session.post(
+        resp = self.client.portal_session.post(
             f'{self.client.portal_session.DEV_QH65B2}/account/ios/profile'
             '/regenProvisioningProfile.action',
             data=data,
             headers=csrf_data,
         )
-        # it is simpler just re-fetch profile from api
-        del self._cache[:]
-        return self.find(name=self.name)
+        json = resp.json()
+        if 'expired' in json.get('resultString', ''):
+            if not self.client.portal_session.login():
+                raise error.InvalidAuthCredential()
+            resp = self.client.portal_session.post(
+                f'{self.client.portal_session.DEV_QH65B2}/account/ios/profile'
+                '/regenProvisioningProfile.action',
+                data=data,
+                headers=csrf_data,
+            )
+
+        # construct new instance
+        json = resp.json()['provisioningProfile']
+        data = {
+            'id': json['provisioningProfileId'],
+            'type': self.TYPE,
+            'attributes': {
+                'uuid': json['UUID'],
+                'name': json['name'],
+                'platform': json['proProPlatform'].upper(),
+                'profile_type': json['type'].upper(),
+                'profile_content': json['encodedProfile'],
+                'profile_state': json['status'].upper(),
+                'created_date': '',
+                'expiration_date': json['dateExpire'],
+            },
+        }
+        ins = self.to_model(data, [])
+        ins.distribution_type = json['distributionType']
+        return ins
