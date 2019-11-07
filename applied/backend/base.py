@@ -8,6 +8,8 @@ MISSING = object()
 
 class BaseBackend:
 
+    TIMEOUT = 30 * 1000
+
     def __init__(self, ttl):
         self.ttl = ttl
         self.values = TTLCache(maxsize=1024, ttl=ttl / 1000)

@@ -6,7 +6,7 @@ from .. import error
 class BaseInterface:
 
     MAX_RETRIES = 3
-    TIMEOUT = 30 * 1000
+    TIMEOUT = 60
 
     def __init__(self):
         self.session = requests.sessions.Session()
@@ -55,37 +55,48 @@ class BaseInterface:
         # have no idea what to do now, just raise requests error
         raise error.UnwantedResponse(f'{resp}: {resp.text}')
 
-    def get(self, path, params=None, data=None, json=None, headers=None):
+    def get(self, path, **kwargs):
         resp = self.session.get(
             self.ensure_url(path),
-            params=params, data=data, json=json, headers=headers,
+            timeout=kwargs.pop('timeout', self.TIMEOUT),
+            **kwargs,
         )
         return self.handle_resp(resp)
 
-    def patch(self, path, params=None, data=None, json=None, headers=None):
+    def patch(self, path, data=None, json=None, **kwargs):
         resp = self.session.patch(
             self.ensure_url(path),
-            params=params, data=data, json=json, headers=headers,
+            data=data,
+            json=json,
+            timeout=kwargs.pop('timeout', self.TIMEOUT),
+            **kwargs,
         )
         return self.handle_resp(resp)
 
-    def put(self, path, params=None, data=None, json=None, headers=None):
+    def put(self, path, data=None, json=None, **kwargs):
         resp = self.session.put(
             self.ensure_url(path),
-            params=params, data=data, json=json, headers=headers,
+            data=data,
+            json=json,
+            timeout=kwargs.pop('timeout', self.TIMEOUT),
+            **kwargs,
         )
         return self.handle_resp(resp)
 
-    def post(self, path, params=None, data=None, json=None, headers=None):
+    def post(self, path, data=None, json=None, **kwargs):
         resp = self.session.post(
             self.ensure_url(path),
-            params=params, data=data, json=json, headers=headers,
+            data=data,
+            json=json,
+            timeout=kwargs.pop('timeout', self.TIMEOUT),
+            **kwargs,
         )
         return self.handle_resp(resp)
 
-    def delete(self, path, params=None, data=None, json=None, headers=None):
+    def delete(self, path, **kwargs):
         resp = self.session.delete(
             self.ensure_url(path),
-            params=params, data=data, json=json, headers=headers,
+            timeout=kwargs.pop('timeout', self.TIMEOUT),
+            **kwargs,
         )
         return self.handle_resp(resp)
