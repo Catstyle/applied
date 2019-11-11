@@ -75,21 +75,6 @@ class Profile(BaseModel):
             },
             headers={'X-HTTP-Method-Override': 'GET'},
         )
-        data = resp.json()
-        if 'expired' in data.get('resultString', ''):
-            if not portal.login():
-                raise error.InvalidAuthCredential()
-            resp = portal.post(
-                f'{portal.DEV_QH65B2}/account/ios/profile/'
-                'listProvisioningProfiles.action',
-                data={
-                    'teamId': portal.team_id,
-                    'pageNumber': 1,
-                    'pageSize': 1,
-                    'sort': 'name=asc',
-                },
-                headers={'X-HTTP-Method-Override': 'GET'},
-            )
         if not ('csrf' in resp.headers and 'csrf_ts' in resp.headers):
             raise error.NoCsrfData(cls)
         csrf_data = {
@@ -143,7 +128,7 @@ class Profile(BaseModel):
         app_id: str = None,
         certificates: List[str] = None,
         devices: List[str] = None,
-    ):
+    ) -> 'Profile':
         ''' update a specified profile
 
         since app store connect api donot permit update
@@ -158,17 +143,6 @@ class Profile(BaseModel):
             data=data,
             headers=csrf_data,
         )
-        json = resp.json()
-        if 'expired' in json.get('resultString', ''):
-            if not self.client.portal_session.login():
-                raise error.InvalidAuthCredential()
-            resp = self.client.portal_session.post(
-                f'{self.client.portal_session.DEV_QH65B2}/account/ios/profile'
-                '/regenProvisioningProfile.action',
-                data=data,
-                headers=csrf_data,
-            )
-
         # construct new instance
         json = resp.json()['provisioningProfile']
         data = {

@@ -33,13 +33,13 @@ class BaseInterface:
 
     def handle_resp(self, resp, retrying=1):
         resp.encoding = 'utf-8'
-        if resp.ok:
-            return resp
-
-        if resp.status_code == 401:
-            # api token expired, renew token and retry
+        if resp.status_code == 401 or b'session has expired' in resp.content:
+            # session expired, renew and retry
             self.renew_session()
             return self.retry(resp.request, resp, retrying + 1)
+
+        if resp.ok:
+            return resp
 
         if resp.status_code == 403:
             raise error.PermissionDenied(

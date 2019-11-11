@@ -17,8 +17,13 @@ class PortalSession(BaseInterface):
     APC_IRIS_V1 = 'https://appstoreconnect.apple.com/iris/v1'
     APC_OLYMPUS_V1 = 'https://appstoreconnect.apple.com/olympus/v1'
 
-    def __init__(self, username: str, password: str,
-                 two_factor_callback: Callable, backend=None):
+    def __init__(
+        self,
+        username: str,
+        password: str,
+        two_factor_callback: Callable,
+        backend=None,
+    ):
         super().__init__()
         if not (username and password):
             raise error.InvalidAuthCredential(username, password)
@@ -64,24 +69,12 @@ class PortalSession(BaseInterface):
     @cache(key='{self.username}_list_teams', default=[])
     def list_teams(self):
         resp = self.post(f'{self.DEV_QH65B2}/account/listTeams.action')
-        data = resp.json()
-        if 'teams' not in data and 'expired' in data.get('resultString', ''):
-            if not self.login():
-                raise error.InvalidAuthCredential()
-            resp = self.post(f'{self.DEV_QH65B2}/account/listTeams.action')
-            data = resp.json()
-        return data['teams']
+        return resp.json()['teams']
 
     @cache(key='{self.username}_get_teams', default=[])
     def get_teams(self):
         resp = self.post(f'{self.DEV_QH65B2}/account/getTeams')
-        data = resp.json()
-        if 'teams' not in data and 'expired' in data.get('resultString', ''):
-            if not self.login():
-                raise error.InvalidAuthCredential()
-            resp = self.post(f'{self.DEV_QH65B2}/account/getTeams')
-            data = resp.json()
-        return data['teams']
+        return resp.json()['teams']
 
     def get_service_key(self):
         resp = self.session.get(
@@ -97,27 +90,42 @@ class PortalSession(BaseInterface):
 
     def login(self):
         if not self.load_cookies_from_backend():
-            resp = self.send_login_request()
-            if resp.ok and 'myacinfo' in self.session.cookies:
-                self.store_session()
-                return True
-
-            if resp.status_code == 409 or 'authType' in resp.text:
-                # 2 step/factor is enabled for this account
-                lock_name = f'renew_{self.username}'
-                value = str(uuid4())
-                if self.backend.request_renew(lock_name, value, 90000):
-                    self.handle_two_step_or_factor(resp)
-                    self.backend.finish_renew(lock_name, value)
-                    self.backend.save(f'done_renew_{self.username}', 1, 10000)
-                else:
-                    # someone else doing renew
-                    self.backend.wait(f'done_renew_{self.username}', 15000)
-                    self.load_cookies_from_backend()
-                return self.is_session_valid
-            return False
+            return self.do_login()
         return True
-    renew_session = login
+
+    def do_login(self):
+        resp = self.send_login_request()
+        username = self.username
+        self.logger.debug(
+            f'{username} send_login_request, resp code: {resp.code}, '
+            f'has myacinfo: {"myacinfo" in self.session.cookies}, '
+            f'has authType: {"authType" in resp.text}'
+        )
+        if resp.ok and 'myacinfo' in self.session.cookies:
+            self.store_session()
+            return True
+
+        if resp.status_code == 409 or 'authType' in resp.text:
+            # 2 step/factor is enabled for this account
+            lock_name = f'renew_{username}'
+            value = str(uuid4())
+            backend = self.backend
+            if backend.request_renew(lock_name, value, 90000):
+                self.logger.debug(
+                    f'{username} request_renew, {lock_name} {value}'
+                )
+                self.handle_two_step_or_factor(resp)
+                backend.finish_renew(lock_name, value)
+                backend.save(f'done_renew_{username}', 1, 10000)
+            else:
+                # someone else doing renew
+                self.logger.debug(f'{username} wait renew')
+                backend.wait(f'done_renew_{username}', 15000)
+                self.load_cookies_from_backend()
+            return self.is_session_valid
+        return False
+
+    renew_session = do_login
 
     def load_cookies_from_backend(self):
         value = self.backend.get(f'{self.username}.cookies')
@@ -193,7 +201,7 @@ class PortalSession(BaseInterface):
                 'scnt': scnt,
                 'X-Apple-Widget-Key': self.auth_service_key,
                 'Accept': 'application/json',
-            }
+            },
         )
         if not options_resp.ok:
             raise error.UnwantedResponse(
@@ -205,7 +213,9 @@ class PortalSession(BaseInterface):
         # applied only handle two factor now
         if 'trustedPhoneNumbers' in data:
             self.two_factor_callback(
-                self, x_id, scnt,
+                self,
+                x_id,
+                scnt,
                 {'backend_data': self.backend.backend_data, 'auth_data': data},
             )
         else:
@@ -242,7 +252,7 @@ class PortalSession(BaseInterface):
                 'scnt': scnt,
                 'X-Apple-Widget-Key': self.auth_service_key,
                 'Accept': 'application/json',
-            }
+            },
         )
         if not resp.ok:
             raise error.UnwantedResponse(f'{resp}: {resp.text}')
@@ -258,7 +268,7 @@ class PortalSession(BaseInterface):
                 'X-Apple-Id-Session-Id': x_id,
                 'scnt': scnt,
                 'X-Apple-Widget-Key': self.auth_service_key,
-            }
+            },
         )
 
     def renew_req(self, req):
