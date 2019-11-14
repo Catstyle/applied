@@ -96,7 +96,7 @@ class PortalSession(BaseInterface):
     def do_login(self):
         resp = self.send_login_request()
         username = self.username
-        self.logger.debug(
+        logger.debug(
             f'{username} send_login_request, resp code: {resp.code}, '
             f'has myacinfo: {"myacinfo" in self.session.cookies}, '
             f'has authType: {"authType" in resp.text}'
@@ -111,15 +111,13 @@ class PortalSession(BaseInterface):
             value = str(uuid4())
             backend = self.backend
             if backend.request_renew(lock_name, value, 90000):
-                self.logger.debug(
-                    f'{username} request_renew, {lock_name} {value}'
-                )
+                logger.debug(f'{username} request_renew, {lock_name} {value}')
                 self.handle_two_step_or_factor(resp)
                 backend.finish_renew(lock_name, value)
                 backend.save(f'done_renew_{username}', 1, 10000)
             else:
                 # someone else doing renew
-                self.logger.debug(f'{username} wait renew')
+                logger.debug(f'{username} wait renew')
                 backend.wait(f'done_renew_{username}', 15000)
                 self.load_cookies_from_backend()
             return self.is_session_valid
