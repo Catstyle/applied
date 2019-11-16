@@ -89,7 +89,8 @@ class PortalSession(BaseInterface):
         self.olympus_session = data
 
     def login(self):
-        if not self.load_cookies_from_backend():
+        self.load_cookies_from_backend()
+        if not self.is_session_valid:
             return self.do_login()
         return True
 
@@ -132,7 +133,6 @@ class PortalSession(BaseInterface):
         self.session.cookies = merge_cookies(
             self.session.cookies, pickle.loads(value)
         )
-        return self.is_session_valid
 
     def store_session(self):
         logger.debug(f'store_session: {self.session.cookies}')
