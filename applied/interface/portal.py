@@ -97,7 +97,7 @@ class PortalSession(BaseInterface):
         resp = self.send_login_request()
         username = self.username
         logger.debug(
-            f'{username} send_login_request, resp code: {resp.code}, '
+            f'{username} send_login_request, resp code: {resp.status_code}, '
             f'has myacinfo: {"myacinfo" in self.session.cookies}, '
             f'has authType: {"authType" in resp.text}'
         )
