@@ -56,3 +56,7 @@ class DuplicatedModel(AppliedError):
 
 class InvalidJWT(AppliedError):
     ''' cannot encode jwt '''
+
+
+class NoCsrfData(AppliedError):
+    ''' no csrf data found in resp headers '''
