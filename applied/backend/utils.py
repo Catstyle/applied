@@ -10,6 +10,8 @@ def cache(key, default=None, ttl=None):
     def wrapper(func):
         @wraps(func)
         def _(self, *args, **kwargs):
+            nonlocal key
+            key = key.format(self=self, *args, **kwargs)
             value = self.backend.get(key)
             if value is MISSING:
                 backend = self.backend
