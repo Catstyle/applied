@@ -104,6 +104,7 @@ class PortalSession(BaseInterface):
         )
         if resp.ok and 'myacinfo' in self.session.cookies:
             self.store_session()
+            self.load_cookies_from_backend()
             return True
 
         if resp.status_code == 409 or 'authType' in resp.text:
