@@ -66,12 +66,12 @@ class PortalSession(BaseInterface):
     def auth_service_key(self):
         return self.get_service_key()
 
-    @cache(key='{self.username}_list_teams', default=[])
+    @cache('{self.username}_list_teams', default=[])
     def list_teams(self):
         resp = self.post(f'{self.DEV_QH65B2}/account/listTeams.action')
         return resp.json()['teams']
 
-    @cache(key='{self.username}_get_teams', default=[])
+    @cache('{self.username}_get_teams', default=[])
     def get_teams(self):
         resp = self.post(f'{self.DEV_QH65B2}/account/getTeams')
         return resp.json()['teams']

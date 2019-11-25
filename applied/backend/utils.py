@@ -6,12 +6,11 @@ from ujson import dumps
 from . import MISSING
 
 
-def cache(key, default=None, ttl=None):
+def cache(key_format, default=None, ttl=None):
     def wrapper(func):
         @wraps(func)
         def _(self, *args, **kwargs):
-            nonlocal key
-            key = key.format(self=self, *args, **kwargs)
+            key = key_format.format(self=self, *args, **kwargs)
             value = self.backend.get(key)
             if value is MISSING:
                 backend = self.backend
