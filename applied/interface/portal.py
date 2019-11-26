@@ -271,7 +271,9 @@ class PortalSession(BaseInterface):
         )
 
     def renew_req(self, req):
-        req._cookies = merge_cookies(req._cookies, self.session.cookies)
+        # req is PreparedRequest
+        req.headers.pop('Cookie', '')
+        req.prepare_cookies(merge_cookies(req._cookies, self.session.cookies))
         return req
 
     def get_csrf_data(self, model):

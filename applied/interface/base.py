@@ -25,7 +25,7 @@ class BaseInterface:
                 f'exceed max retries for {req.method} {req.path_url}, '
                 f'last resp, {resp.status_code} {resp.content}'
             )
-        self.renew_req(req)
+        req = self.renew_req(req)
         return self.handle_resp(self.session.send(req), retrying)
 
     def renew_req(self, req):
@@ -35,7 +35,8 @@ class BaseInterface:
         resp.encoding = 'utf-8'
         if resp.status_code == 401 or b'session has expired' in resp.content:
             # session expired, renew and retry
-            self.renew_session()
+            if not self.renew_session():
+                raise error.NotAuthenticated()
             return self.retry(resp.request, resp, retrying + 1)
 
         if resp.ok:

@@ -10,6 +10,10 @@ class InvalidRequestData(AppliedError):
     ''' something wrong in request data '''
 
 
+class NotAuthenticated(AppliedError):
+    ''' session expired or not login '''
+
+
 class PermissionDenied(AppliedError):
     ''' permission wrong '''
 

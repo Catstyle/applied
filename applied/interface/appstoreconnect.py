@@ -8,7 +8,6 @@ from .base import BaseInterface
 
 
 class ApiToken:
-
     def __init__(self, key_id: str, auth_key: str, issuer_id: str):
         self.key_id = key_id
         self.auth_key = auth_key
@@ -19,12 +18,14 @@ class ApiToken:
         jwt_payload = {
             'iss': self.issuer_id,
             'exp': int(time()) + 1200,  # 20 mins
-            'aud': f'appstoreconnect-v1'
+            'aud': f'appstoreconnect-v1',
         }
         try:
             return jwt.encode(
-                jwt_payload, self.auth_key, algorithm='ES256',
-                headers=jwt_header
+                jwt_payload,
+                self.auth_key,
+                algorithm='ES256',
+                headers=jwt_header,
             ).decode()
         except ValueError:
             raise InvalidJWT(
@@ -44,8 +45,10 @@ class ApiSession(BaseInterface):
         self.renew_session()
 
     def renew_session(self):
-        self.session.headers['Authorization'] = \
-            f'Bearer {self.api_token.renew_token()}'
+        self.session.headers[
+            'Authorization'
+        ] = f'Bearer {self.api_token.renew_token()}'
+        return True
 
     def renew_req(self, req):
         req.headers['Authorization'] = self.session.headers['Authorization']
