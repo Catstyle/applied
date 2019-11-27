@@ -111,3 +111,43 @@ class Query:
         )
 
         return params
+
+
+class Result:
+    ''' query result helper container '''
+
+    def __init__(self, model, params, data):
+        self.model = model
+        self.params = params
+        self.objects = []
+        self.load_objects(data)
+
+    def load_objects(self, data):
+        self.links = data['links']
+        self.meta = data.get('meta', {})
+        self.objects.extend(self.model.from_json(data))
+
+    @property
+    def count(self):
+        if self.meta:
+            return self.meta['paging']['total']
+        return 0
+
+    def rewind(self):
+        if 'first' in self.links:
+            self.objects = []
+            resp = self.model.client.api_session.get(self.links['first'])
+            self.load_objects(resp.json())
+
+    def __iter__(self):
+        pos = 0
+        while 1:
+            while pos < len(self.objects):
+                yield self.objects[pos]
+                pos += 1
+
+            if 'next' not in self.links:
+                return
+
+            resp = self.model.client.api_session.get(self.links['next'])
+            self.load_objects(resp.json())

@@ -2,7 +2,7 @@ from dataclasses import dataclass, asdict, MISSING
 
 from applied import error
 
-from .queryset import Query
+from .queryset import Query, Result
 
 
 def delegate(model, client):
@@ -62,7 +62,13 @@ class BaseModel:
         )
         params = q.get_params(cls)
         resp = cls.client.api_session.get(f'/{cls.TYPE}', params=params)
-        return cls.from_json(resp.json())
+        return Result(cls, params, resp.json())
+
+    @classmethod
+    def count(cls):
+        # we only need the total in response meta
+        # e.g.: ...'meta': {'total': 74, 'limit': 1}...
+        return cls.find(limit=1).count
 
     def update(self, **kwargs):
         update_data = self.build_update_data(**kwargs)

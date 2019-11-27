@@ -7,6 +7,7 @@ from applied import error
 
 from .base import BaseModel
 from .provider import Provider
+from .queryset import Query, Result
 from .user import User
 
 
@@ -32,6 +33,8 @@ class ApiKey(BaseModel):
     )
 
     TYPE = 'apiKeys'
+
+    ONLY_FIELDS = {'apiKeys'}
     INCLUDE_FIELDS = {'createdBy', 'revokedBy', 'provider'}
 
     class Role(Enum):
@@ -65,10 +68,9 @@ class ApiKey(BaseModel):
         return cls.from_json(resp.json())
 
     @classmethod
-    def get(cls, pk, include=()):
-        params = {}
-        if include and cls.INCLUDE_FIELDS:
-            params['include'] = ','.join(set(include) & cls.INCLUDE_FIELDS)
+    def get(cls, pk, *, includes=()):
+        q = Query(includes=includes)
+        params = q.get_params(cls)
         portal = cls.client.portal_session
         resp = portal.get(
             f'{portal.APC_IRIS_V1}/{cls.TYPE}/{pk}', params=params,
@@ -76,13 +78,12 @@ class ApiKey(BaseModel):
         return cls.from_json(resp.json())
 
     @classmethod
-    def all(cls, include=()):
-        params = {}
-        if include and cls.INCLUDE_FIELDS:
-            params['include'] = ','.join(set(include) & cls.INCLUDE_FIELDS)
+    def find(cls, *, includes=()):
+        q = Query(includes=includes)
+        params = q.get_params(cls)
         portal = cls.client.portal_session
         resp = portal.get(f'{portal.APC_IRIS_V1}/{cls.TYPE}', params=params)
-        return cls.from_json(resp.json())
+        return Result(cls, params, resp.json())
 
     def download_private_key(self):
         portal = self.client.portal_session
