@@ -151,3 +151,11 @@ class Result:
 
             resp = self.model.client.api_session.get(self.links['next'])
             self.load_objects(resp.json())
+
+    def __str__(self):
+        return f'<{self.model.__name__}, total: {self.count}>'
+
+    __repr__ = __str__
+
+    def __bool__(self):
+        return self.count > 0
