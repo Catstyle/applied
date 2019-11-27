@@ -133,11 +133,26 @@ class Result:
             return self.meta['paging']['total']
         return 0
 
+    def first(self):
+        try:
+            return self.objects[0]
+        except IndexError:
+            return
+
+    def one(self):
+        count = self.count
+        if count > 1:
+            raise error.MultipleResultsFound(self.params, count)
+        if count == 0:
+            raise error.NoResultFound(self.params)
+        return self.objects[0]
+
     def rewind(self):
         if 'first' in self.links:
             self.objects = []
             resp = self.model.client.api_session.get(self.links['first'])
             self.load_objects(resp.json())
+        return self
 
     def __iter__(self):
         pos = 0

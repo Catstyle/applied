@@ -84,3 +84,11 @@ class InvalidJWT(AppliedError):
 
 class NoCsrfData(AppliedError):
     ''' no csrf data found in resp headers '''
+
+
+class NoResultFound(AppliedError):
+    ''' no result found '''
+
+
+class MultipleResultsFound(AppliedError):
+    ''' multiple results found '''
