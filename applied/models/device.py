@@ -16,15 +16,26 @@ class Device(BaseModel):
 
     TYPE = 'devices'
 
+    FILTER_FIELDS = {'id', 'name', 'udid', 'status', 'platform'}
+    ONLY_FIELDS = {'devices'}
+    SORT_FIELDS = {
+        'id',
+        '-id',
+        'name',
+        '-name',
+        'platform',
+        '-platform',
+        'status',
+        '-status',
+        'udid',
+        '-udid',
+    }
+
     @classmethod
     def build_create_data(cls, udid: str, name: str, platform: str) -> dict:
         return {
             'type': cls.TYPE,
-            'attributes': {
-                'udid': udid,
-                'name': name,
-                'platform': platform,
-            },
+            'attributes': {'udid': udid, 'name': name, 'platform': platform},
         }
 
     def build_update_data(self, name: str = None, status: str = None):

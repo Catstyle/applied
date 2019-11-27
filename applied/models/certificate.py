@@ -17,8 +17,6 @@ class Certificate(BaseModel):
     certificate_type: str = field(metadata={'source': 'certificateType'})
     certificate_content: str = field(metadata={'source': 'certificateContent'})
 
-    TYPE = 'certificates'
-
     class Type(Enum):
 
         IOS_DEVELOPMENT = 'IOS_DEVELOPMENT'
@@ -28,6 +26,28 @@ class Certificate(BaseModel):
         MAC_APP_DEVELOPMENT = 'MAC_APP_DEVELOPMENT'
         DEVELOPER_ID_KEXT = 'DEVELOPER_ID_KEXT'
         DEVELOPER_ID_APPLICATION = 'DEVELOPER_ID_APPLICATION'
+
+    TYPE = 'certificates'
+
+    FILTER_FIELDS = {
+        'id',
+        'certificateType',
+        'displayName',
+        'serialNumer',
+        'seedId',
+    }
+    ONLY_FIELDS = {'certificates'}
+    SORT_FIELDS = {
+        'id',
+        '-id',
+        'displayName',
+        '-displayName',
+        'certificateType',
+        '-certificateType',
+        'serialNumer',
+        '-serialNumer',
+    }
+    RELATED_LIMIT = {'profiles': 50}
 
     @classmethod
     def build_create_data(cls, certificate_type: str, csr: str) -> dict:

@@ -31,7 +31,6 @@ class PortalSession(BaseInterface):
         self.password = password
 
         self.backend = backend or TTLCacheBackend(ttl=600000)  # 10 mins
-        self.csrf_data = {}
         self.olympus_session = {}
         self._two_factor_callback = two_factor_callback
 
@@ -64,7 +63,13 @@ class PortalSession(BaseInterface):
     @property
     @cache('auth_service_key', default='', ttl=3600000)
     def auth_service_key(self):
-        return self.get_service_key()
+        resp = self.session.get(
+            f'{self.APC_OLYMPUS_V1}/app/config'
+            '?hostname=itunesconnect.apple.com'
+        )
+        if not resp.ok:
+            raise error.UnwantedResponse('service key is missing')
+        return resp.json()['authServiceKey']
 
     @cache('{self.username}_list_teams', default=[])
     def list_teams(self):
@@ -75,15 +80,6 @@ class PortalSession(BaseInterface):
     def get_teams(self):
         resp = self.post(f'{self.DEV_QH65B2}/account/getTeams')
         return resp.json()['teams']
-
-    def get_service_key(self):
-        resp = self.session.get(
-            f'{self.APC_OLYMPUS_V1}/app/config'
-            '?hostname=itunesconnect.apple.com'
-        )
-        if not resp.ok:
-            raise error.UnwantedResponse('service key is missing')
-        return resp.json()['authServiceKey']
 
     def load_olympus_session(self, data):
         self.olympus_session = data
@@ -275,12 +271,3 @@ class PortalSession(BaseInterface):
         req.headers.pop('Cookie', '')
         req.prepare_cookies(merge_cookies(req._cookies, self.session.cookies))
         return req
-
-    def get_csrf_data(self, model):
-        if model not in self.csrf_data:
-            # do one request, fetch csrf data
-            model.first()
-        return self.csrf_data[model]
-
-    def set_csrf_data(self, model, data):
-        self.csrf_data[model] = data

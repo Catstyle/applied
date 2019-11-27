@@ -54,6 +54,26 @@ class UnknownModelType(AppliedError):
     ''' cannot handle model type '''
 
 
+class UnknownModelFilter(AppliedError):
+    ''' model has no such filter '''
+
+
+class UnknownModelField(AppliedError):
+    ''' model has no such field '''
+
+
+class UnknownModelInclude(AppliedError):
+    ''' model has no such include '''
+
+
+class UnknownModelSort(AppliedError):
+    ''' model has no such sort '''
+
+
+class UnknownModelLimits(AppliedError):
+    ''' model has no such related limit '''
+
+
 class DuplicatedModel(AppliedError):
     ''' check model type '''
 

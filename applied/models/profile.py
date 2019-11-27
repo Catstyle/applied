@@ -29,9 +29,6 @@ class Profile(BaseModel):
     certificates: List[Certificate] = field(init=False, default_factory=list)
     devices: List[Device] = field(init=False, default_factory=list)
 
-    TYPE = 'profiles'
-    INCLUDE_FIELDS = {'bundleId', 'certificates', 'devices'}
-
     class Type(Enum):
 
         IOS_APP_DEVELOPMENT = 'IOS_APP_DEVELOPMENT'
@@ -56,14 +53,30 @@ class Profile(BaseModel):
         'IOS_APP_STORE': 'store',
     }
 
+    TYPE = 'profiles'
+
+    FILTER_FIELDS = {'id', 'name', 'profileState', 'profileType'}
+    ONLY_FIELDS = {'certificates', 'devices', 'profiles', 'bundleIds'}
+    INCLUDE_FIELDS = {'bundleId', 'certificates', 'devices'}
+    SORT_FIELDS = {
+        'id',
+        '-id',
+        'name',
+        '-name',
+        'profileState',
+        '-profileState',
+        'profileType',
+        '-profileType',
+    }
+    RELATED_LIMIT = {'certificates': 50, 'devices': 50}
+
     def __post_init__(self):
         self.distribution_type = self.TYPE_SYMBOLS.get(
             self.profile_type, self.profile_type
         )
 
-    @classmethod
-    def fetch_csrf_data(cls):
-        portal = cls.client.portal_session
+    def fetch_csrf_data(self):
+        portal = self.client.portal_session
         resp = portal.post(
             f'{portal.DEV_QH65B2}/account/ios/profile/'
             'listProvisioningProfiles.action',
@@ -76,13 +89,11 @@ class Profile(BaseModel):
             headers={'X-HTTP-Method-Override': 'GET'},
         )
         if not ('csrf' in resp.headers and 'csrf_ts' in resp.headers):
-            raise error.NoCsrfData(cls)
-        csrf_data = {
+            raise error.NoCsrfData(self.__class__)
+        return {
             'csrf': resp.headers['csrf'],
             'csrf_ts': resp.headers['csrf_ts'],
         }
-        portal.csrf_data[cls] = csrf_data
-        return csrf_data
 
     @classmethod
     def build_create_data(
@@ -135,13 +146,12 @@ class Profile(BaseModel):
         we need to use developer.apple.com api, known as portal api
         so we need to use portal session explicitly
         '''
-        csrf_data = self.get_csrf_data()
         data = self.build_update_data(name, app_id, certificates, devices)
         resp = self.client.portal_session.post(
             f'{self.client.portal_session.DEV_QH65B2}/account/ios/profile'
             '/regenProvisioningProfile.action',
             data=data,
-            headers=csrf_data,
+            headers=self.fetch_csrf_data(),
         )
         # construct new instance
         json = resp.json()['provisioningProfile']

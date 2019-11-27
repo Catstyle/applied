@@ -15,21 +15,37 @@ class BundleId(BaseModel):
 
     profiles: List['Profile'] = field(init=False, default_factory=list)
     capabilities: List['Capability'] = field(
-        init=False, default_factory=list,
-        metadata={'source': 'bundleIdCapabilities'}
+        init=False,
+        default_factory=list,
+        metadata={'source': 'bundleIdCapabilities'},
     )
-
-    TYPE = 'bundleIds'
-    INCLUDE_FIELDS = {'bundleIdCapabilities', 'profiles'}
 
     class Platform(Enum):
 
         IOS = 'IOS'
         MAC_OS = 'MAC_OS'
 
+    TYPE = 'bundleIds'
+
+    FILTER_FIELDS = {'id', 'identifier', 'name', 'platform', 'seedId'}
+    ONLY_FIELDS = {'bundleIds', 'profiles', 'bundleIdCapabilities'}
+    INCLUDE_FIELDS = {'bundleIdCapabilities', 'profiles'}
+    SORT_FIELDS = {
+        'id',
+        '-id',
+        'name',
+        '-name',
+        'platform',
+        '-platform',
+        'seedId',
+        '-seedId',
+    }
+    RELATED_LIMIT = {'profiles': 50}
+
     @classmethod
-    def build_create_data(cls, identifier: str, name: str, platform: str,
-                          seed_id: str = None) -> dict:
+    def build_create_data(
+        cls, identifier: str, name: str, platform: str, seed_id: str = None
+    ) -> dict:
         data = {
             'type': cls.TYPE,
             'attributes': {

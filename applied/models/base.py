@@ -1,38 +1,28 @@
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, MISSING
 
-from applied.error import DuplicatedModel
-from applied.error import UnknownModelData, UnknownModelType
+from applied import error
+
+from .queryset import Query
 
 
 def delegate(model, client):
     return type(
-        model.__name__,
-        (model,),
-        {'client': client, 'delegated': True, '_cache': []}
+        model.__name__, (model,), {'client': client, 'delegated': True},
     )
 
 
-class ModelMeta(type):
-
-    def __new__(cls, name, bases, attrs):
-        model = type.__new__(cls, name, bases, attrs)
-        if model.TYPE is not None:
-            if (model.TYPE in model.MODEL_CLASSES and
-                    not getattr(model, 'delegated', False)):
-                raise DuplicatedModel(model.TYPE, model.MODEL_CLASSES)
-            model.MODEL_CLASSES[model.TYPE] = model
-        return model
-
-
 @dataclass
-class BaseModel(metaclass=ModelMeta):
+class BaseModel:
 
     id: str
 
     TYPE = None
-    MODEL_CLASSES = {}
+
     FILTER_FIELDS = set()
+    ONLY_FIELDS = set()
     INCLUDE_FIELDS = set()
+    SORT_FIELDS = set()
+    RELATED_LIMIT = {}
 
     @classmethod
     def create(cls, **kwargs):
@@ -45,31 +35,34 @@ class BaseModel(metaclass=ModelMeta):
         return cls.from_json(resp.json())
 
     @classmethod
-    def get(cls, pk, include=()):
-        params = {}
-        if include and cls.INCLUDE_FIELDS:
-            params['include'] = ','.join(set(include) & cls.INCLUDE_FIELDS)
+    def get(cls, pk, *, includes=()):
+        q = Query(includes=includes)
+        params = q.get_params(cls)
         resp = cls.client.api_session.get(f'/{cls.TYPE}/{pk}', params=params)
         return cls.from_json(resp.json())
 
     @classmethod
-    def all(cls, include=()):
-        params = {}
-        if include and cls.INCLUDE_FIELDS:
-            params['include'] = ','.join(set(include) & cls.INCLUDE_FIELDS)
+    def find(
+        cls,
+        *,
+        filters={},
+        fields={},
+        includes=(),
+        sorts=(),
+        limit=20,
+        related_limits={},
+    ):
+        q = Query(
+            filters=filters,
+            fields=fields,
+            includes=includes,
+            sorts=sorts,
+            limit=limit,
+            related_limits=related_limits,
+        )
+        params = q.get_params(cls)
         resp = cls.client.api_session.get(f'/{cls.TYPE}', params=params)
         return cls.from_json(resp.json())
-
-    @classmethod
-    def find(cls, *, include=(), **query):
-        if not cls._cache:
-            cls._cache = cls.all(include)
-        fields = cls.__dataclass_fields__
-        # if no query data, will return the first instance
-        for ins in cls._cache:
-            if all(key in fields and getattr(ins, key) == value
-                   for key, value in query.items()):
-                return ins
 
     def update(self, **kwargs):
         update_data = self.build_update_data(**kwargs)
@@ -78,7 +71,9 @@ class BaseModel(metaclass=ModelMeta):
         )
         json_data = resp.json()
         data = json_data['data']
-        self.update_attributes(self.filter_attributes(data['attributes']))
+        self.update_attributes(
+            self.filter_attributes(data['attributes'], False)
+        )
         self.update_relationships(
             data.get('relationships', {}), json_data.get('included', [])
         )
@@ -99,13 +94,13 @@ class BaseModel(metaclass=ModelMeta):
         elif isinstance(data, list):
             return [cls.to_model(ele, included) for ele in data]
         else:
-            raise UnknownModelData(data)
+            raise error.UnknownModelData(data)
 
     @classmethod
     def to_model(cls, data, included):
         model = cls.client.MODEL_CLASSES.get(data['type'])
         if not model:
-            raise UnknownModelType(data['type'])
+            raise error.UnknownModelType(data['type'])
         values = {'id': data['id']}
         values.update(model.filter_attributes(data.get('attributes', {})))
         ins = model(**values)
@@ -113,7 +108,7 @@ class BaseModel(metaclass=ModelMeta):
         return ins
 
     @classmethod
-    def filter_attributes(cls, attributes):
+    def filter_attributes(cls, attributes, fill_missing=True):
         values = {}
         for name, field in cls.__dataclass_fields__.items():
             if name == 'id':
@@ -125,7 +120,14 @@ class BaseModel(metaclass=ModelMeta):
                 try:
                     value = attributes[name]
                 except KeyError:
-                    continue
+                    if not fill_missing or not field.init:
+                        continue
+                    if field.default_factory is not MISSING:
+                        value = field.default_factory()
+                    elif field.default is not MISSING:
+                        value = field.default
+                    else:
+                        value = field.type()
             values[name] = value
         return values
 
@@ -151,16 +153,8 @@ class BaseModel(metaclass=ModelMeta):
                 attributes[key] = map_included(data, included)
             elif isinstance(data, list):
                 attributes[key] = [map_included(ele, included) for ele in data]
-        self.update_attributes(self.filter_attributes(attributes))
+        self.update_attributes(self.filter_attributes(attributes, False))
         return self
-
-    @classmethod
-    def get_csrf_data(cls):
-        session = cls.client.portal_session
-        csrf = session.csrf_data.get(cls, {})
-        if not csrf:
-            csrf = cls.fetch_csrf_data()
-        return csrf
 
     def update_attributes(self, attributes):
         fields = self.__class__.__dataclass_fields__

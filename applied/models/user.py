@@ -6,7 +6,27 @@ from .base import BaseModel
 
 
 @dataclass
+class VisibleApp:
+
+    id: str
+    type: str
+
+
+@dataclass
 class User(BaseModel):
+
+    first_name: str = field(metadata={'source': 'firstName'})
+    last_name: str = field(metadata={'source': 'lastName'})
+    roles: List[str]
+    provisioning_allowed: bool = field(
+        metadata={'source': 'provisioningAllowed'}
+    )
+    allAppsVisible: bool = field(metadata={'source': 'allAppsVisible'})
+    username: str
+
+    visible_apps: VisibleApp = field(
+        init=False, default_factory=list, metadata={'source': 'visibleApps'},
+    )
 
     class Role(Enum):
 
@@ -22,14 +42,10 @@ class User(BaseModel):
         ACCESS_TO_REPORTS = 'ACCESS_TO_REPORTS'
         CUSTOMER_SUPPORT = 'CUSTOMER_SUPPORT'
 
-    first_name: str = field(metadata={'source': 'firstName'})
-    last_name: str = field(metadata={'source': 'lastName'})
-    roles: List[str]
-    provisioning_allowed: bool = field(
-        metadata={'source': 'provisioningAllowed'}
-    )
-    allAppsVisible: bool = field(metadata={'source': 'allAppsVisible'})
-    username: str
-
     TYPE = 'users'
+
+    FILTER_FIELDS = {'roles', 'visibleApps', 'username'}
+    ONLY_FIELDS = {'apps', 'users'}
     INCLUDE_FIELDS = {'visibleApps'}
+    SORT_FIELDS = {'lastName', '-lastName', 'username', '-username'}
+    RELATED_LIMIT = {'visibleApps': 50}
