@@ -179,6 +179,12 @@ class PortalSession(BaseInterface):
 
         if not resp.ok and resp.status_code != 409:
             raise error.UnwantedResponse(f'{resp}: {resp.text}')
+
+        for cookie in self.session.cookies:
+            if cookie.name.startswith('DES') and '"' in cookie.value:
+                cookie.value = cookie.value.strip('"')
+                break
+
         return resp
 
     def handle_two_step_or_factor(self, resp):
