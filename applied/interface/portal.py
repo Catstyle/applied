@@ -110,7 +110,9 @@ class PortalSession(BaseInterface):
             backend = self.backend
             if backend.request_renew(lock_name, value, 90000):
                 logger.debug(f'{username} request_renew, {lock_name} {value}')
-                self.handle_two_step_or_factor(resp)
+                self.handle_two_step_or_factor(
+                    resp.headers['X-Apple-Id-Session-Id'], resp.headers['scnt']
+                )
                 backend.finish_renew(lock_name, value)
                 backend.save(f'done_renew_{username}', 1, 10000)
             else:
@@ -187,9 +189,7 @@ class PortalSession(BaseInterface):
 
         return resp
 
-    def handle_two_step_or_factor(self, resp):
-        x_id = resp.headers['X-Apple-Id-Session-Id']
-        scnt = resp.headers['scnt']
+    def handle_two_step_or_factor(self, x_id, scnt):
         logger.info(
             f'handle_two_step_or_factor, '
             f'username: {self.username}, x_id: {x_id}, scnt: {scnt}'

@@ -75,8 +75,9 @@ class Profile(BaseModel):
             self.profile_type, self.profile_type
         )
 
-    def fetch_csrf_data(self):
-        portal = self.client.portal_session
+    @classmethod
+    def fetch_csrf_data(cls):
+        portal = cls.client.portal_session
         resp = portal.post(
             f'{portal.DEV_QH65B2}/account/ios/profile/'
             'listProvisioningProfiles.action',
@@ -89,7 +90,7 @@ class Profile(BaseModel):
             headers={'X-HTTP-Method-Override': 'GET'},
         )
         if not ('csrf' in resp.headers and 'csrf_ts' in resp.headers):
-            raise error.NoCsrfData(self.__class__)
+            raise error.NoCsrfData(cls)
         return {
             'csrf': resp.headers['csrf'],
             'csrf_ts': resp.headers['csrf_ts'],
