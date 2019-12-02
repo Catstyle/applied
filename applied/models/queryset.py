@@ -149,9 +149,11 @@ class Result:
 
     def rewind(self):
         if 'first' in self.links:
-            self.objects = []
             resp = self.model.client.api_session.get(self.links['first'])
-            self.load_objects(resp.json())
+        else:
+            resp = self.model.client.api_session.get(self.links['self'])
+        self.objects = []
+        self.load_objects(resp.json())
         return self
 
     def __iter__(self):
