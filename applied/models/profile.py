@@ -146,6 +146,9 @@ class Profile(BaseModel):
         since app store connect api donot permit update
         we need to use developer.apple.com api, known as portal api
         so we need to use portal session explicitly
+
+        warning: cannot update the same profile at the same time
+        should it lock for serialization?
         '''
         data = self.build_update_data(name, app_id, certificates, devices)
         resp = self.client.portal_session.post(

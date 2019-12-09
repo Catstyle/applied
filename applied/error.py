@@ -92,3 +92,7 @@ class NoResultFound(AppliedError):
 
 class MultipleResultsFound(AppliedError):
     ''' multiple results found '''
+
+
+class PortalApiError(AppliedError):
+    ''' error occured when request portal api '''

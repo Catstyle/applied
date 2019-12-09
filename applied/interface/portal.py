@@ -3,9 +3,9 @@ from uuid import uuid4
 from requests.cookies import merge_cookies
 from typing import Callable
 
+from applied import error
 from applied import logger
-from .. import error
-from ..backend import MISSING, TTLCacheBackend, cache
+from applied.backend import MISSING, TTLCacheBackend, cache
 
 from .base import BaseInterface
 
@@ -271,6 +271,53 @@ class PortalSession(BaseInterface):
                 'X-Apple-Widget-Key': self.auth_service_key,
             },
         )
+
+    def handle_resp(self, resp, retrying=1):
+        resp.encoding = 'utf-8'
+        if resp.status_code == 401 or b'session has expired' in resp.content:
+            # session expired, renew and retry
+            if not self.renew_session():
+                raise error.NotAuthenticated()
+            return self.retry(resp.request, resp, retrying + 1)
+
+        if resp.ok:
+            resp_json = resp.json()
+            '''
+            {
+                'responseId': '1a5c16e9-bc03-...',
+                'resultCode': 35,
+                'resultString': 'There were errors in the data supplied. Please correct and re-submit.',
+                'userString': "Multiple profiles found with the name 'com.xxx.yyy.zzz'.  Please remove the duplicate profiles and try again.",
+                'creationTimestamp': '2019-12-06T07:21:40Z',
+                'protocolVersion': 'QH65B2',
+                'userLocale': 'en_US',
+                'requestUrl': 'https://developer.apple.com/services-account/QH65B2/account/ios/profile/regenProvisioningProfile.action',
+                'httpCode': 200,
+                'validationMessages': [
+                    {
+                        'validationKey': 'provisioningProfileName',
+                        'validationUserMessage': "Multiple profiles found with the name 'com.xxx.yyy.zzz'.  Please remove the duplicate profiles and try again."
+                    }
+                ]
+            }
+            '''
+            if resp_json.get('resultCode', 0):
+                raise error.PortalApiError(resp_json.get('userString', ''))
+            return resp
+
+        if resp.status_code == 403:
+            raise error.PermissionDenied(
+                f'check the role of account: {self.username}'
+            )
+        if resp.status_code == 404:
+            raise error.ResourceNotFound(f'{resp}: {resp.text}')
+
+        if resp.status_code == 409:
+            raise error.InvalidRequestData(f'{resp}: {resp.text}')
+        if resp.status_code == 400:
+            raise error.InvalidRequestData(f'{resp}: {resp.text}')
+        # have no idea what to do now, just raise requests error
+        raise error.UnwantedResponse(f'{resp}: {resp.text}')
 
     def renew_req(self, req):
         # req is PreparedRequest

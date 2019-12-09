@@ -32,29 +32,7 @@ class BaseInterface:
         return req
 
     def handle_resp(self, resp, retrying=1):
-        resp.encoding = 'utf-8'
-        if resp.status_code == 401 or b'session has expired' in resp.content:
-            # session expired, renew and retry
-            if not self.renew_session():
-                raise error.NotAuthenticated()
-            return self.retry(resp.request, resp, retrying + 1)
-
-        if resp.ok:
-            return resp
-
-        if resp.status_code == 403:
-            raise error.PermissionDenied(
-                f'check the role of api key: {self.api_token.key_id}'
-            )
-        if resp.status_code == 404:
-            raise error.ResourceNotFound(f'{resp}: {resp.text}')
-
-        if resp.status_code == 409:
-            raise error.InvalidRequestData(f'{resp}: {resp.text}')
-        if resp.status_code == 400:
-            raise error.InvalidRequestData(f'{resp}: {resp.text}')
-        # have no idea what to do now, just raise requests error
-        raise error.UnwantedResponse(f'{resp}: {resp.text}')
+        raise NotImplementedError('handle_resp')
 
     def get(self, path, **kwargs):
         resp = self.session.get(
