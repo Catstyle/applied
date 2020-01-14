@@ -96,3 +96,7 @@ class MultipleResultsFound(AppliedError):
 
 class PortalApiError(AppliedError):
     ''' error occured when request portal api '''
+
+
+class MissingTeamMembership(AppliedError):
+    ''' error occured when request portal api '''
