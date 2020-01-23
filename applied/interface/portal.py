@@ -23,8 +23,9 @@ class PortalSession(BaseInterface):
         password: str,
         two_factor_callback: Callable,
         backend=None,
+        session_kwargs=None,
     ):
-        super().__init__()
+        super().__init__(session_kwargs)
         if not (username and password):
             raise error.InvalidAuthCredential(username, password)
         self.username = username

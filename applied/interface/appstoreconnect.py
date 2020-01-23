@@ -37,8 +37,8 @@ class ApiSession(BaseInterface):
 
     ROOT_URL = 'https://api.appstoreconnect.apple.com/v1'
 
-    def __init__(self, api_token):
-        super().__init__()
+    def __init__(self, api_token, session_kwargs=None):
+        super().__init__(session_kwargs)
         self.api_token = api_token
         self.session.headers['Accept'] = 'application/json'
 

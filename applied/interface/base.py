@@ -8,8 +8,11 @@ class BaseInterface:
     MAX_RETRIES = 3
     TIMEOUT = 60
 
-    def __init__(self):
+    def __init__(self, session_kwargs: dict = None):
         self.session = requests.sessions.Session()
+        session_kwargs = session_kwargs or {}
+        for attr in session_kwargs.keys() & set(self.session.__attrs__):
+            setattr(self.session, attr, session_kwargs[attr])
 
     def renew_session(self):
         raise NotImplementedError
