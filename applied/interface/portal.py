@@ -236,7 +236,7 @@ class PortalSession(BaseInterface):
         self.store_session()
         self._two_factor_callback(portal, x_id, scnt, ctx)
 
-    def verify_smscode(self, code, x_id, scnt):
+    def verify_smscode(self, code, x_id, scnt, ctx):
         logger.info(
             f'verify_smscode, username: {self.username}, '
             f'x_id: {x_id}, scnt: {scnt}, code: {code}'
@@ -246,9 +246,16 @@ class PortalSession(BaseInterface):
         if isinstance(code, bytes):
             code = code.decode()
 
+        data = {'securityCode': {'code': code}, 'mode': 'sms'}
+        auth_data = ctx['auth_data']
+        if auth_data.get('noTrustedDevices', False):
+            url = 'https://idmsa.apple.com/appleauth/auth/verify/phone/securitycode'  # noqa
+            data['phoneNumber'] = {'id': auth_data['trustedPhoneNumber']['id']}
+        else:
+            url = 'https://idmsa.apple.com/appleauth/auth/verify/trusteddevice/securitycode'  # noqa
         resp = self.session.post(
-            'https://idmsa.apple.com/appleauth/auth/verify/trusteddevice/securitycode',  # noqa
-            json={'securityCode': {'code': code}},
+            url,
+            json=data,
             headers={
                 'X-Apple-Id-Session-Id': x_id,
                 'scnt': scnt,
