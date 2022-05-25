@@ -1,5 +1,5 @@
 requests==2.22.0
-pyjwt==1.7.1
+pyjwt==2.4.0
 cachetools==3.1.1
 redis==3.3.8
 pyOpenSSL==19.0.0
